@@ -923,6 +923,12 @@ WebEngineContext::WebEngineContext()
     enableFeatures.push_back("ScreenCaptureKitMacScreen");
 #endif // defined(Q_OS_MACOS)
 
+    // By default the Touch Events API support (presence of 'ontouchstart' in 'window' object)
+    // will be determined based on the availability of touch screen devices.
+    if (!parsedCommandLine->HasSwitch(switches::kTouchEventFeatureDetection))
+        parsedCommandLine->AppendSwitchASCII(switches::kTouchEventFeatureDetection,
+                                             switches::kTouchEventFeatureDetectionAuto);
+
     // Not implemented but it overrides the devtools eyedropper
     // Should be sync with kEyeDropper base::Feature
     parsedCommandLine->AppendSwitchASCII(switches::kDisableBlinkFeatures, "EyeDropperAPI");

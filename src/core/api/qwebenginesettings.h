@@ -64,6 +64,7 @@ public:
         ForceDarkMode,
         PrintHeaderAndFooter,
         PreferCSSMarginsForPrinting,
+        JSTouchEventsEnabled,
     };
 
     enum FontSize {

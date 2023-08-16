@@ -521,6 +521,8 @@ static const QStringList expectedAPI = QStringList()
     << "QQuickWebEngineSettings.webRTCPublicInterfacesOnlyChanged() --> void"
     << "QQuickWebEngineSettings.readingFromCanvasEnabled --> bool"
     << "QQuickWebEngineSettings.readingFromCanvasEnabledChanged() --> void"
+    << "QQuickWebEngineSettings.jsTouchEventsEnabled --> bool"
+    << "QQuickWebEngineSettings.jsTouchEventsEnabledChanged() --> void"
     << "QQuickWebEngineSingleton.defaultProfile --> QQuickWebEngineProfile*"
     << "QQuickWebEngineSingleton.settings --> QQuickWebEngineSettings*"
     << "QQuickWebEngineSingleton.script() --> QWebEngineScript"
