@@ -141,5 +141,4 @@ void* GLSurfaceGLXQt::GetHandle()
     return reinterpret_cast<void*>(m_surfaceBuffer);
 }
 
-} //namespace gl
-
+} // namespace gl

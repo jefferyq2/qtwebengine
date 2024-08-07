@@ -1,7 +1,6 @@
 // Copyright (C) 2024 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-#if defined(USE_OZONE)
 #include "gl_context_qt.h"
 #include "gl_ozone_angle_qt.h"
 #include "gl_surface_egl_qt.h"
@@ -115,5 +114,3 @@ GLOzoneANGLEQt::ImportNativePixmap(scoped_refptr<gfx::NativePixmap> pixmap,
 }
 
 } // namespace ui
-
-#endif // defined(USE_OZONE)

@@ -20,11 +20,6 @@ QtShareGLContext::QtShareGLContext(QOpenGLContext *context)
     : gl::GLContext(nullptr), m_handle(nullptr)
 {
 #if QT_CONFIG(opengl)
-#if defined(Q_OS_WIN)
-    auto *win_ctx = context->nativeInterface<QNativeInterface::QWGLContext>();
-    if (win_ctx && !m_handle)
-        m_handle = (void *)win_ctx->nativeContext();
-#endif
 #if QT_CONFIG(xcb_glx_plugin)
     auto *glx_ctx = context->nativeInterface<QNativeInterface::QGLXContext>();
     if (glx_ctx && !m_handle)

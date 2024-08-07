@@ -3,12 +3,6 @@
 
 #include "qtwebenginecoreglobal_p.h"
 
-#include <QGuiApplication>
-#if QT_CONFIG(opengl)
-# include <QOpenGLContext>
-#endif
-#include <QThread>
-#include <QQuickWindow>
 #include "web_engine_context.h"
 #include "web_engine_library_info.h"
 
@@ -17,7 +11,14 @@
 #include "base/path_service.h"
 #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 
-#if QT_CONFIG(opengl) && !defined(Q_OS_MACOS)
+#include <QUrl>
+
+#if QT_CONFIG(opengl) && defined(Q_OS_LINUX)
+#include <QGuiApplication>
+#include <QOpenGLContext>
+#include <QQuickWindow>
+#include <QThread>
+
 QT_BEGIN_NAMESPACE
 Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
@@ -25,7 +26,7 @@ QT_END_NAMESPACE
 #endif
 
 namespace QtWebEngineCore {
-#if QT_CONFIG(opengl) && !defined(Q_OS_MACOS)
+#if QT_CONFIG(opengl) && defined(Q_OS_LINUX)
 static QOpenGLContext *shareContext;
 
 static void deleteShareContext()
@@ -71,32 +72,17 @@ static void ensureShareContext()
     // Classes like QOpenGLWidget check for the attribute
     app->setAttribute(Qt::AA_ShareOpenGLContexts);
 }
-
-#endif
-// ### Qt 6: unify this logic and Qt::AA_ShareOpenGLContexts.
-// QtWebEngineQuick::initialize was introduced first and meant to be called
-// after the QGuiApplication creation, when AA_ShareOpenGLContexts fills
-// the same need but the flag has to be set earlier.
+#endif // QT_CONFIG(opengl) && defined(Q_OS_LINUX)
 
 Q_WEBENGINECORE_EXPORT void initialize()
 {
-#if QT_CONFIG(opengl) && !defined(Q_OS_MACOS)
-#ifdef Q_OS_WIN32
-    qputenv("QT_D3DCREATE_MULTITHREADED", "1");
-#endif
+#if QT_CONFIG(opengl) && defined(Q_OS_LINUX)
     auto api = QQuickWindow::graphicsApi();
-    if (api != QSGRendererInterface::OpenGL
-#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        && api != QSGRendererInterface::Vulkan && api != QSGRendererInterface::Metal
-        && api != QSGRendererInterface::Direct3D11
-#endif
-    )
+    if (api != QSGRendererInterface::OpenGL && api != QSGRendererInterface::Vulkan)
         QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 
-    // ensure we have shared OpenGL context
-    if (QQuickWindow::graphicsApi() != QSGRendererInterface::Direct3D11)
-        ensureShareContext();
-#endif // QT_CONFIG(opengl) && !defined(Q_OS_MACOS)
+    ensureShareContext();
+#endif
 }
 
 bool closingDown()
@@ -119,12 +105,13 @@ sandbox::SandboxInterfaceInfo *staticSandboxInterfaceInfo(sandbox::SandboxInterf
 }
 } //namespace
 #endif
+
 static void initialize()
 {
-#if QT_CONFIG(opengl) && !defined(Q_OS_MACOS)
+#if QT_CONFIG(opengl) && defined(Q_OS_LINUX)
     // QCoreApplication is not yet instantiated, ensuring the call will be deferred
     qAddPreRoutine(QtWebEngineCore::initialize);
-#endif // QT_CONFIG(opengl)
+#endif
 }
 
 QT_BEGIN_NAMESPACE

@@ -201,7 +201,7 @@ content::ContentBrowserClient *ContentMainDelegateQt::CreateContentBrowserClient
     return m_browserClient.get();
 }
 
-#if defined(USE_OZONE) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_OZONE)
 content::ContentGpuClient *ContentMainDelegateQt::CreateContentGpuClient()
 {
     m_gpuClient.reset(new ContentGpuClientQt);

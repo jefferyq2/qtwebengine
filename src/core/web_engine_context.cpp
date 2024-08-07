@@ -104,7 +104,6 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QMutex>
-#include <QOffscreenSurface>
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QStringList>
@@ -115,7 +114,10 @@
 #include <QtQuick/private/qsgrhisupport_p.h>
 #include <QLoggingCategory>
 
-#if QT_CONFIG(opengl) && (defined(USE_OZONE) || defined(Q_OS_WIN))
+#if QT_CONFIG(opengl)
+#include <QOffscreenSurface>
+
+#if BUILDFLAG(IS_OZONE)
 #include "ozone/gl_context_qt.h"
 
 #include <QOpenGLContext>
@@ -124,7 +126,8 @@
 QT_BEGIN_NAMESPACE
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 QT_END_NAMESPACE
-#endif
+#endif // BUILDFLAG(IS_OZONE)
+#endif // QT_CONFIG(opengl)
 
 #define STRINGIFY_LITERAL(x) #x
 #define STRINGIFY_EXPANDED(x) STRINGIFY_LITERAL(x)
@@ -372,8 +375,9 @@ static bool usingSupportedSGBackend()
     return device.isEmpty() || device == QLatin1StringView("rhi");
 }
 
+#if BUILDFLAG(IS_OZONE)
 #if QT_CONFIG(opengl)
-bool usingSoftwareDynamicGL()
+static bool usingSoftwareDynamicGL()
 {
     const char openGlVar[] = "QT_OPENGL";
     if (QCoreApplication::testAttribute(Qt::AA_UseSoftwareOpenGL))
@@ -386,15 +390,11 @@ bool usingSoftwareDynamicGL()
     }
     return false;
 }
+#endif // QT_CONFIG(opengl)
 
-static std::string getGLType(bool enableGLSoftwareRendering, bool disableGpu)
+static std::string getGLTypeForOzone(bool enableGLSoftwareRendering)
 {
-    if (disableGpu || !usingSupportedSGBackend())
-        return gl::kGLImplementationDisabledName;
-
-#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
-    return gl::kGLImplementationANGLEName;
-#else
+#if QT_CONFIG(opengl)
     if (usingSoftwareDynamicGL() && !enableGLSoftwareRendering)
         return gl::kGLImplementationDisabledName;
 
@@ -419,27 +419,30 @@ static std::string getGLType(bool enableGLSoftwareRendering, bool disableGpu)
     case QSurfaceFormat::OpenVG:
     case QSurfaceFormat::DefaultRenderableType:
     default:
-        // Shared contex created but no rederable type set.
+        // Shared context created but no renderable type set.
         qWarning("Unsupported rendering surface format. Please open bug report at "
                  "https://bugreports.qt.io");
     }
+#else
+    Q_UNUSED(enableGLSoftwareRendering);
+#endif // QT_CONFIG(opengl)
 
     return gl::kGLImplementationDisabledName;
-#endif // defined(Q_OS_WIN) || defined(Q_OS_MACOS)
 }
-#else
-static std::string getGLType(bool /*enableGLSoftwareRendering*/, bool disableGpu)
+#endif // BUILDFLAG(IS_OZONE)
+
+static std::string getGLType(bool enableGLSoftwareRendering, bool disableGpu)
 {
     if (disableGpu || !usingSupportedSGBackend())
         return gl::kGLImplementationDisabledName;
 
-#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
-    return gl::kGLImplementationANGLEName;
+#if BUILDFLAG(IS_OZONE)
+    return getGLTypeForOzone(enableGLSoftwareRendering);
 #else
-    return gl::kGLImplementationDisabledName;
+    Q_UNUSED(enableGLSoftwareRendering);
+    return gl::kGLImplementationANGLEName;
 #endif
 }
-#endif // QT_CONFIG(opengl)
 
 static std::string getVulkanType(base::CommandLine *cmd)
 {
@@ -498,16 +501,13 @@ static void logContext(const std::string &glType, base::CommandLine *cmd)
             << QLatin1StringView("\n");
         log << QLatin1StringView("\n");
 
-#if QT_CONFIG(opengl)
-#if BUILDFLAG(IS_OZONE)
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
         log << QLatin1StringView("Using GLX:")
             << QLatin1StringView(GLContextHelper::getGlxPlatformInterface() ? "yes" : "no")
             << QLatin1StringView("\n");
         log << QLatin1StringView("Using EGL:")
             << QLatin1StringView(GLContextHelper::getEglPlatformInterface() ? "yes" : "no")
             << QLatin1StringView("\n");
-#endif
-#if defined(USE_OZONE) || defined(Q_OS_WIN)
         log << QLatin1StringView("Using Shared GL:")
             << QLatin1StringView(qt_gl_global_share_context() ? "yes" : "no")
             << QLatin1StringView("\n");
@@ -533,8 +533,7 @@ static void logContext(const std::string &glType, base::CommandLine *cmd)
                             .arg(sharedFormat.minorVersion());
         }
         log << QLatin1StringView("\n");
-#endif // defined(USE_OZONE) || defined(Q_OS_WIN)
-#endif // QT_CONFIG(opengl)
+#endif // QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
 
         log << QLatin1StringView("Init Parameters:\n");
         const base::CommandLine::SwitchMap switchMap = cmd->GetSwitches();
@@ -715,7 +714,7 @@ void WebEngineContext::destroy()
     // Destroy the main runner, this stops main message loop
     m_browserRunner.reset();
 
-#if QT_CONFIG(opengl) && (defined(USE_OZONE) || defined(Q_OS_WIN))
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
     // gpu thread is no longer around, so no more context is used, remove the helper
     GLContextHelper::destroy();
 #endif
@@ -1008,7 +1007,7 @@ WebEngineContext::WebEngineContext()
         }
     }
 #endif // QT_CONFIG(webengine_vulkan)
-#endif // defined(USE_OZONE)
+#endif // BUILDFLAG(IS_OZONE)
 
 #if defined(Q_OS_WIN)
     if (QQuickWindow::graphicsApi() == QSGRendererInterface::Direct3D11
@@ -1025,7 +1024,7 @@ WebEngineContext::WebEngineContext()
 
     initializeFeatureList(parsedCommandLine, enableFeatures, disableFeatures);
 
-#if QT_CONFIG(opengl) && (defined(USE_OZONE) || defined(Q_OS_WIN))
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
     GLContextHelper::initialize();
 #endif
 
@@ -1051,26 +1050,17 @@ WebEngineContext::WebEngineContext()
         }
 #if QT_CONFIG(opengl)
         if (glType != gl::kGLImplementationANGLEName) {
+#if BUILDFLAG(IS_OZONE)
             QOpenGLContext *shareContext = QOpenGLContext::globalShareContext();
             Q_ASSERT(shareContext);
             const QSurfaceFormat sharedFormat = shareContext->format();
             if (sharedFormat.profile() == QSurfaceFormat::CompatibilityProfile)
                 parsedCommandLine->AppendSwitch(switches::kCreateDefaultGLContext);
-#if defined(Q_OS_WIN)
-            // This switch is used in Chromium's gl_context_wgl.cc file to determine whether to create
-            // an OpenGL Core Profile context. If the switch is not set, it would always try to create a
-            // Core Profile context, even if Qt uses a legacy profile, which causes
-            // "Could not share GL contexts" warnings, because it's not possible to share between Core and
-            // legacy profiles. See GLContextWGL::Initialize().
-            if (sharedFormat.renderableType() == QSurfaceFormat::OpenGL
-                && sharedFormat.profile() != QSurfaceFormat::CoreProfile) {
-                gl::GlWorkarounds workarounds = gl::GetGlWorkarounds();
-                workarounds.disable_es3gl_context = true;
-                gl::SetGlWorkarounds(workarounds);
-            }
-#endif
+#else
+            qWarning("Only --use-gl=angle is supported on this platform.");
+#endif // BUILDFLAG(IS_OZONE)
         }
-#endif //QT_CONFIG(opengl)
+#endif // QT_CONFIG(opengl)
     } else if (!disableGpu) {
         parsedCommandLine->AppendSwitch(switches::kDisableGpu);
     }

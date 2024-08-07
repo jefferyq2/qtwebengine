@@ -4,8 +4,6 @@
 #include "ozone_platform_qt.h"
 
 #include "build/build_config.h"
-
-#if BUILDFLAG(IS_OZONE)
 #include "base/no_destructor.h"
 #include "base/task/thread_pool.h"
 #include "media/gpu/buildflags.h"
@@ -282,7 +280,4 @@ gfx::ClientNativePixmapFactory *CreateClientNativePixmapFactoryQt()
     return gfx::CreateClientNativePixmapFactoryDmabuf();
 }
 
-}  // namespace ui
-
-#endif
-
+} // namespace ui

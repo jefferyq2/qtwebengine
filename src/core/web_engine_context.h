@@ -56,8 +56,6 @@ class ContentMainDelegateQt;
 class DevToolsServerQt;
 class ProfileAdapter;
 
-bool usingSoftwareDynamicGL();
-
 typedef std::tuple<bool, QString, QString> ProxyAuthentication;
 
 class WebEngineContext : public base::RefCounted<WebEngineContext> {

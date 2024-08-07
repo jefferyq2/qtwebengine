@@ -1,7 +1,6 @@
 // Copyright (C) 2019 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-#include "display_skia_output_device.h"
 #include "display_software_output_surface.h"
 #include "native_skia_output_device.h"
 
@@ -18,6 +17,10 @@
 
 #if BUILDFLAG(ENABLE_VULKAN)
 #include "native_skia_output_device_vulkan.h"
+#endif
+
+#if defined(Q_OS_LINUX)
+#include "display_skia_output_device.h"
 #endif
 
 #if defined(Q_OS_WIN)
@@ -42,15 +45,15 @@ viz::SkiaOutputSurfaceImplOnGpu::CreateOutputDevice()
 #if QT_CONFIG(opengl)
     if (graphicsApi == QSGRendererInterface::OpenGL) {
         if (gl::GetGLImplementation() != gl::kGLImplementationEGLANGLE) {
-#if !defined(Q_OS_MACOS)
+#if defined(Q_OS_LINUX)
             if (context_state_->gr_context_type() == gpu::GrContextType::kGL) {
                 return std::make_unique<QtWebEngineCore::DisplaySkiaOutputDevice>(
                         context_state_, renderer_settings_.requires_alpha_channel,
                         shared_gpu_deps_->memory_tracker(), GetDidSwapBuffersCompleteCallback());
             }
 #else
-            qFatal("macOS only supports ANGLE.");
-#endif // !defined(Q_OS_MACOS)
+            qFatal("This platform only supports ANGLE.");
+#endif // defined(Q_OS_LINUX)
         }
 
         return std::make_unique<QtWebEngineCore::NativeSkiaOutputDeviceOpenGL>(

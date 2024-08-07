@@ -4,7 +4,6 @@
 #ifndef GL_OZONE_ANGLE_QT_H
 #define GL_OZONE_ANGLE_QT_H
 
-#if defined(USE_OZONE)
 #include "ui/ozone/common/gl_ozone_egl.h"
 
 namespace ui {
@@ -35,7 +34,5 @@ protected:
 };
 
 } // namespace ui
-
-#endif // defined(USE_OZONE)
 
 #endif // GL_OZONE_ANGLE_QT_H

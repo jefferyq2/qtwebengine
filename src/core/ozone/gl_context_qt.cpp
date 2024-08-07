@@ -3,28 +3,18 @@
 
 #include "gl_context_qt.h"
 
+#include "ui/gl/egl_util.h"
+#include "ui/gl/gl_implementation.h"
+
 #include <QGuiApplication>
+#include <QOffscreenSurface>
 #include <QOpenGLContext>
+#include <QOpenGLFunctions>
 #include <QThread>
 #include <QtGui/private/qtgui-config_p.h>
 #include <qpa/qplatformnativeinterface.h>
 
-#include "ui/gl/gl_implementation.h"
-#include "ui/gl/gl_surface.h"
-
-#if defined(USE_OZONE)
-#include "ui/gl/egl_util.h"
-
-#include <QOpenGLFunctions>
-#include <QOffscreenSurface>
-
 #include <vector>
-#endif
-
-#if BUILDFLAG(IS_WIN)
-#include "ui/gl/gl_context_egl.h"
-#include "ui/gl/gl_context_wgl.h"
-#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -89,13 +79,7 @@ void* GLContextHelper::getGlXConfig()
 
 void* GLContextHelper::getEGLDisplay()
 {
-#if BUILDFLAG(IS_WIN)
-    // Windows QPA plugin does not implement resourceForIntegration for "egldisplay".
-    // Use resourceForContext instead.
-    return resourceForContext(QByteArrayLiteral("egldisplay"));
-#else
     return resourceForIntegration(QByteArrayLiteral("egldisplay"));
-#endif
 }
 
 void* GLContextHelper::getXDisplay()
@@ -158,7 +142,7 @@ bool GLContextHelper::isCreateContextRobustnessSupported()
     return contextHelper->m_robustness;
 }
 
-#if QT_CONFIG(opengl) && QT_CONFIG(egl) && defined(USE_OZONE)
+#if QT_CONFIG(opengl) && QT_CONFIG(egl)
 class ScopedGLContext
 {
 public:
@@ -244,9 +228,9 @@ private:
     EGLDisplay m_previousEGLDisplay = nullptr;
     std::vector<uint> m_textures;
 };
-#endif // QT_CONFIG(opengl) && QT_COFNIG(egl) && defined(USE_OZONE)
+#endif // QT_CONFIG(opengl) && QT_COFNIG(egl)
 
-#if QT_CONFIG(opengl) && defined(USE_OZONE)
+#if QT_CONFIG(opengl)
 EGLHelper::EGLFunctions::EGLFunctions()
 {
     const static auto getProcAddress =
@@ -374,43 +358,6 @@ bool EGLHelper::isDmaBufSupported()
 {
     return m_isDmaBufSupported;
 }
-#endif // QT_CONFIG(opengl) && defined(USE_OZONE)
+#endif // QT_CONFIG(opengl)
 
 QT_END_NAMESPACE
-
-#if BUILDFLAG(IS_WIN)
-namespace gl {
-namespace init {
-
-scoped_refptr<GLContext> CreateGLContext(GLShareGroup *share_group,
-                                         GLSurface *compatible_surface,
-                                         const GLContextAttribs &attribs)
-{
-    switch (GetGLImplementation()) {
-    case kGLImplementationDesktopGLCoreProfile:
-    case kGLImplementationDesktopGL: {
-        scoped_refptr<GLContext> context = new GLContextWGL(share_group);
-        if (!context->Initialize(compatible_surface, attribs))
-            return nullptr;
-        return context;
-    }
-    case kGLImplementationEGLANGLE:
-        if (Q_UNLIKELY(!compatible_surface)) {
-            qWarning("EGL: no compatible surface.");
-            return nullptr;
-        }
-        return InitializeGLContext(new GLContextEGL(share_group),
-                                   compatible_surface, attribs);
-    case kGLImplementationDisabled:
-        return nullptr;
-    default:
-        break;
-    }
-    Q_UNREACHABLE();
-    return nullptr;
-}
-
-}  // namespace init
-}  // namespace gl
-
-#endif // BUILDFLAG(IS_WIN)

@@ -1,7 +1,6 @@
 // Copyright (C) 2024 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-#if defined(USE_OZONE)
 #include "surface_factory_qt.h"
 
 #include "qtwebenginecoreglobal_p.h"
@@ -277,5 +276,3 @@ bool SurfaceFactoryQt::SupportsNativePixmaps()
 }
 
 } // namespace QtWebEngineCore
-#endif // defined(USE_OZONE)
-

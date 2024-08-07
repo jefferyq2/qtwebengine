@@ -10,7 +10,7 @@
 #include "content_client_qt.h"
 #include "content_utility_client_qt.h"
 
-#if defined(USE_OZONE) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_OZONE)
 #include "compositor/content_gpu_client_qt.h"
 #endif
 
@@ -26,7 +26,7 @@ public:
 
     content::ContentClient *CreateContentClient() override;
     content::ContentBrowserClient* CreateContentBrowserClient() override;
-#if defined(USE_OZONE) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_OZONE)
     content::ContentGpuClient* CreateContentGpuClient() override;
 #endif
     content::ContentRendererClient* CreateContentRendererClient() override;
@@ -36,7 +36,7 @@ public:
 private:
     ContentClientQt m_contentClient;
     std::unique_ptr<ContentBrowserClientQt> m_browserClient;
-#if defined(USE_OZONE) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_OZONE)
     std::unique_ptr<ContentGpuClientQt> m_gpuClient;
 #endif
     std::unique_ptr<ContentUtilityClientQt> m_utilityClient;

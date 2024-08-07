@@ -201,24 +201,15 @@ foreach(arch ${archs})
                 accessibility_activation_observer.cpp accessibility_activation_observer.h
         )
 
-        extend_gn_target(${buildGn} CONDITION LINUX OR WIN32
+        extend_gn_target(${buildGn} CONDITION LINUX
             SOURCES
                 compositor/content_gpu_client_qt.cpp compositor/content_gpu_client_qt.h
                 ozone/gl_context_qt.cpp ozone/gl_context_qt.h
-                ozone/gl_share_context_qt.cpp ozone/gl_share_context_qt.h
-                ozone/gl_surface_qt.cpp ozone/gl_surface_qt.h
-        )
-
-        extend_gn_target(${buildGn} CONDITION WIN32
-            SOURCES
-                ozone/gl_surface_wgl_qt.cpp ozone/gl_surface_wgl_qt.h
-        )
-
-        extend_gn_target(${buildGn} CONDITION LINUX
-            SOURCES
                 ozone/gl_ozone_angle_qt.cpp ozone/gl_ozone_angle_qt.h
                 ozone/gl_ozone_egl_qt.cpp ozone/gl_ozone_egl_qt.h
+                ozone/gl_share_context_qt.cpp ozone/gl_share_context_qt.h
                 ozone/gl_surface_egl_qt.cpp ozone/gl_surface_egl_qt.h
+                ozone/gl_surface_qt.cpp ozone/gl_surface_qt.h
                 ozone/platform_window_qt.cpp ozone/platform_window_qt.h
                 ozone/surface_factory_qt.cpp ozone/surface_factory_qt.h
         )

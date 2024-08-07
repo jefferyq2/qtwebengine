@@ -54,6 +54,7 @@ public:
     EGLSurface GetHandle() override;
     void* GetShareHandle() override;
 };
-}
 
-#endif
+} // namespace gl
+
+#endif // GL_SURFACE_EGL_QT_H_

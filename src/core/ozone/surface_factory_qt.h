@@ -4,8 +4,6 @@
 #ifndef SURFACE_FACTORY_QT
 #define SURFACE_FACTORY_QT
 
-#if defined(USE_OZONE)
-
 #include "ui/ozone/public/surface_factory_ozone.h"
 
 namespace QtWebEngineCore {
@@ -47,8 +45,6 @@ private:
 };
 
 } // namespace QtWebEngineCore
-
-#endif // defined(USE_OZONE)
 
 #endif // SURFACE_FACTORY_QT
 

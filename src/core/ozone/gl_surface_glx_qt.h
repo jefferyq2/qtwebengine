@@ -27,5 +27,6 @@ private:
     int m_surfaceBuffer;
 };
 
-}
-#endif
+} // namespace gl
+
+#endif // GL_SURFACE_GLX_QT_H_

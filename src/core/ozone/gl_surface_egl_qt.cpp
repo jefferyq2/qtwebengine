@@ -14,8 +14,6 @@
 #include "ui/gl/gl_display_manager.h"
 #include "ui/gl/init/gl_factory.h"
 
-#if defined(USE_OZONE)
-
 using ui::GetLastEGLErrorString;
 
 namespace gl {
@@ -212,4 +210,3 @@ void* GLSurfacelessQtEGL::GetShareHandle()
 }
 
 } // namespace gl
-#endif // defined(USE_OZONE)

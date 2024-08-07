@@ -4,8 +4,6 @@
 #ifndef GL_OZONE_EGL_QT
 #define GL_OZONE_EGL_QT
 
-#if defined(USE_OZONE)
-
 #include "ui/ozone/common/gl_ozone_egl.h"
 
 namespace ui {
@@ -42,7 +40,5 @@ protected:
 };
 
 } // namespace ui
-
-#endif // defined(USE_OZONE)
 
 #endif // GL_OZONE_EGL_QT

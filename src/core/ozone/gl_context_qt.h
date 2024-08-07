@@ -10,7 +10,7 @@
 
 #include "ui/gl/gl_context.h"
 
-#if QT_CONFIG(opengl) && defined(USE_OZONE)
+#if QT_CONFIG(opengl)
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #endif
@@ -45,7 +45,7 @@ private:
     bool m_robustness = false;
 };
 
-#if QT_CONFIG(opengl) && defined(USE_OZONE)
+#if QT_CONFIG(opengl)
 #undef eglCreateImage
 #undef eglDestroyImage
 #undef eglExportDMABUFImageMESA
@@ -90,7 +90,7 @@ private:
     QScopedPointer<QOffscreenSurface> m_offscreenSurface;
     bool m_isDmaBufSupported = false;
 };
-#endif // QT_CONFIG(opengl) && defined(USE_OZONE)
+#endif // QT_CONFIG(opengl)
 
 QT_END_NAMESPACE
 
