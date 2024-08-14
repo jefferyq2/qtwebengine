@@ -374,8 +374,7 @@ static bool usingSupportedSGBackend()
     return device.isEmpty() || device == QLatin1StringView("rhi");
 }
 
-#if BUILDFLAG(IS_OZONE)
-#if QT_CONFIG(opengl)
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
 static bool usingSoftwareDynamicGL()
 {
     const char openGlVar[] = "QT_OPENGL";
@@ -387,60 +386,17 @@ static bool usingSoftwareDynamicGL()
         if (requested == "software")
             return true;
     }
+
     return false;
 }
-#endif // QT_CONFIG(opengl)
+#endif // QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
 
-static std::string getGLTypeForOzone(bool enableGLSoftwareRendering)
-{
-#if QT_CONFIG(opengl)
-    if (usingSoftwareDynamicGL() && !enableGLSoftwareRendering)
-        return gl::kGLImplementationDisabledName;
-
-    if (!qt_gl_global_share_context() || !qt_gl_global_share_context()->isValid()) {
-        qWarning("WebEngineContext is used before QtWebEngineQuick::initialize() or OpenGL context "
-                 "creation failed.");
-        return gl::kGLImplementationDisabledName;
-    }
-
-    const QSurfaceFormat sharedFormat = qt_gl_global_share_context()->format();
-
-    switch (sharedFormat.renderableType()) {
-    case QSurfaceFormat::OpenGL:
-        if (sharedFormat.profile() == QSurfaceFormat::CoreProfile) {
-            qWarning("An OpenGL Core Profile was requested, but it is not supported "
-                     "on the current platform. Falling back to a non-Core profile. "
-                     "Note that this might cause rendering issues.");
-        }
-        return gl::kGLImplementationDesktopName;
-    case QSurfaceFormat::OpenGLES:
-        return gl::kGLImplementationEGLName;
-    case QSurfaceFormat::OpenVG:
-    case QSurfaceFormat::DefaultRenderableType:
-    default:
-        // Shared context created but no renderable type set.
-        qWarning("Unsupported rendering surface format. Please open bug report at "
-                 "https://bugreports.qt.io");
-    }
-#else
-    Q_UNUSED(enableGLSoftwareRendering);
-#endif // QT_CONFIG(opengl)
-
-    return gl::kGLImplementationDisabledName;
-}
-#endif // BUILDFLAG(IS_OZONE)
-
-static std::string getGLType(bool enableGLSoftwareRendering, bool disableGpu)
+static std::string getGLType(bool disableGpu)
 {
     if (disableGpu || !usingSupportedSGBackend())
         return gl::kGLImplementationDisabledName;
 
-#if BUILDFLAG(IS_OZONE)
-    return getGLTypeForOzone(enableGLSoftwareRendering);
-#else
-    Q_UNUSED(enableGLSoftwareRendering);
     return gl::kGLImplementationANGLEName;
-#endif
 }
 
 static std::string getVulkanType(base::CommandLine *cmd)
@@ -951,14 +907,20 @@ WebEngineContext::WebEngineContext()
         parsedCommandLine->AppendSwitch(switches::kDisableGpuMemoryBufferVideoFrames);
     }
 
+    bool usingANGLE = true;
+    // ANGLE is the default but it can be overridden from command line.
+    if (parsedCommandLine->HasSwitch(switches::kUseGL)) {
+        usingANGLE = (parsedCommandLine->GetSwitchValueASCII(switches::kUseGL)
+                      == gl::kGLImplementationANGLEName);
+    }
+
+    if (usingANGLE && !parsedCommandLine->HasSwitch(switches::kUseANGLE)) {
+        parsedCommandLine->AppendSwitchASCII(switches::kUseANGLE,
+                                             gl::kANGLEImplementationOpenGLEGLName);
+    }
+
 #if QT_CONFIG(webengine_vulkan)
-    if (QQuickWindow::graphicsApi() == QSGRendererInterface::OpenGL) {
-        // FIXME: We assume that ANGLE is explicitly enabled on Linux.
-        //        Make sure to reimplement fallback if ANGLE becomes the default.
-        bool usingANGLE = false;
-        if (parsedCommandLine->HasSwitch(switches::kUseGL))
-            usingANGLE = (parsedCommandLine->GetSwitchValueASCII(switches::kUseGL)
-                          == gl::kGLImplementationANGLEName);
+    if (QQuickWindow::graphicsApi() == QSGRendererInterface::OpenGL && usingSupportedSGBackend()) {
         if (usingANGLE && GPUInfo::instance()->vendor() == GPUInfo::Nvidia) {
             qWarning("Disable ANGLE because GBM is not supported with the current configuration. "
                      "Fallback to Vulkan rendering in Chromium.");
@@ -973,9 +935,20 @@ WebEngineContext::WebEngineContext()
     }
 
     if (QQuickWindow::graphicsApi() == QSGRendererInterface::Vulkan && usingSupportedSGBackend()) {
-        enableFeatures.push_back(features::kVulkan.name);
+        // TODO: Hardware accelerated compositing still uses OpenGL so we force desktop GL
+        //       implementation for now. Investigate if it is really necessary. Make sure it works
+        //       with ANGLE too when removing GLX code path.
+        if (usingANGLE) {
+            parsedCommandLine->RemoveSwitch(switches::kUseANGLE);
+            parsedCommandLine->RemoveSwitch(switches::kUseGL);
+            parsedCommandLine->AppendSwitchASCII(switches::kUseGL,
+                                                 gl::kGLImplementationDesktopName);
+        }
+
         parsedCommandLine->AppendSwitchASCII(switches::kUseVulkan,
                                              switches::kVulkanImplementationNameNative);
+        enableFeatures.push_back(features::kVulkan.name);
+
         const char deviceExtensionsVar[] = "QT_VULKAN_DEVICE_EXTENSIONS";
         QByteArrayList requiredDeviceExtensions = { "VK_KHR_external_memory_fd",
                                                     "VK_EXT_external_memory_dma_buf",
@@ -1025,7 +998,7 @@ WebEngineContext::WebEngineContext()
     if (parsedCommandLine->HasSwitch(switches::kUseGL))
         glType = parsedCommandLine->GetSwitchValueASCII(switches::kUseGL);
     else {
-        glType = getGLType(enableGLSoftwareRendering, disableGpu);
+        glType = getGLType(disableGpu);
         parsedCommandLine->AppendSwitchASCII(switches::kUseGL, glType);
     }
 
@@ -1039,11 +1012,47 @@ WebEngineContext::WebEngineContext()
 #if QT_CONFIG(opengl)
         if (glType != gl::kGLImplementationANGLEName) {
 #if BUILDFLAG(IS_OZONE)
-            QOpenGLContext *shareContext = QOpenGLContext::globalShareContext();
-            Q_ASSERT(shareContext);
-            const QSurfaceFormat sharedFormat = shareContext->format();
-            if (sharedFormat.profile() == QSurfaceFormat::CompatibilityProfile)
-                parsedCommandLine->AppendSwitch(switches::kCreateDefaultGLContext);
+            if (usingSoftwareDynamicGL() && !enableGLSoftwareRendering) {
+                qWarning("The current Chromium GL implementation is not expected to work with the "
+                         "current software rendering configuration.");
+            }
+
+            [glType, parsedCommandLine]() {
+                QOpenGLContext *shareContext = QOpenGLContext::globalShareContext();
+                if (!shareContext || !shareContext->isValid()) {
+                    qWarning("WebEngineContext is used before QtWebEngineQuick::initialize() or "
+                             "OpenGL context creation failed.");
+                    return;
+                }
+
+                const QSurfaceFormat sharedFormat = shareContext->format();
+                if (sharedFormat.profile() == QSurfaceFormat::CompatibilityProfile)
+                    parsedCommandLine->AppendSwitch(switches::kCreateDefaultGLContext);
+
+                switch (sharedFormat.renderableType()) {
+                case QSurfaceFormat::OpenGL:
+                    if (sharedFormat.profile() == QSurfaceFormat::CoreProfile) {
+                        qWarning("An OpenGL Core Profile was requested, but it is not supported "
+                                 "on the current platform. Falling back to a non-Core profile. "
+                                 "Note that this might cause rendering issues.");
+                    }
+                    if (glType != gl::kGLImplementationDesktopName) {
+                        qWarning("Current surface is not compatible with Chromium's GL "
+                                 "implementation.");
+                    }
+                    return;
+                case QSurfaceFormat::OpenGLES:
+                    if (glType != gl::kGLImplementationDesktopName) {
+                        qWarning("Current surface is not compatible with Chromium's GL "
+                                 "implementation.");
+                    }
+                    return;
+                case QSurfaceFormat::OpenVG:
+                case QSurfaceFormat::DefaultRenderableType:
+                default:
+                    qWarning("Unsupported rendering surface format.");
+                }
+            }();
 #else
             qWarning("Only --use-gl=angle is supported on this platform.");
 #endif // BUILDFLAG(IS_OZONE)
