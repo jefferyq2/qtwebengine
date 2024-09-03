@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 #include "httpserver.h"
 
-#include "../../../src/core/web_engine_logging.h"
-
 #include <QFile>
 #include <QLoggingCategory>
 #include <QMimeDatabase>
+#include <QtWebEngineCore/private/qtwebenginecoreglobal_p.h>
 
 Q_WEBENGINE_LOGGING_CATEGORY(gHttpServerLog, "HttpServer")
 

@@ -5,13 +5,11 @@
 
 #include "qpdfdocument.h"
 #include "qpdfdocument_p.h"
+#include "qtpdfglobal_p.h"
 
 #include "third_party/pdfium/public/fpdf_doc.h"
 #include "third_party/pdfium/public/fpdfview.h"
 
-#include "../core/web_engine_logging.h"
-
-#include <QLoggingCategory>
 #include <QMetaEnum>
 #include <QPointer>
 #include <QScopedPointer>
@@ -19,7 +17,7 @@
 
 QT_BEGIN_NAMESPACE
 
-Q_WEBENGINE_LOGGING_CATEGORY(qLcBM, "qt.pdf.bookmarks")
+Q_PDF_LOGGING_CATEGORY(qLcBM, "qt.pdf.bookmarks")
 
 class BookmarkNode
 {

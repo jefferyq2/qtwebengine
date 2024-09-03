@@ -16,7 +16,6 @@
 #include "ui/base/ui_base_switches.h"
 
 #include "type_conversion.h"
-#include "web_engine_logging.h"
 
 #include <QByteArray>
 #include <QCoreApplication>

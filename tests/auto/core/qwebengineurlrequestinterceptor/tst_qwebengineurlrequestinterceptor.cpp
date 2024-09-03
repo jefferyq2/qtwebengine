@@ -13,8 +13,6 @@
 #include <QtWebEngineCore/qwebenginepage.h>
 #include <QtWebEngineCore/qwebenginehttprequest.h>
 
-#include "../../../../src/core/web_engine_logging.h"
-
 #include <httpserver.h>
 #include <httpreqrep.h>
 

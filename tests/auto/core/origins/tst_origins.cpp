@@ -4,10 +4,9 @@
 #include <util.h>
 #include "httpserver.h"
 
-#include "../../../../src/core/web_engine_logging.h"
-
 #include <QtCore/qfile.h>
 #include <QtTest/QtTest>
+#include <QtWebEngineCore/private/qtwebenginecoreglobal_p.h>
 #include <QtWebEngineCore/qwebengineurlrequestinterceptor.h>
 #include <QtWebEngineCore/qwebengineurlrequestjob.h>
 #include <QtWebEngineCore/qwebengineurlscheme.h>

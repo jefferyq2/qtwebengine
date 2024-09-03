@@ -4,15 +4,14 @@
 #include "qpdfpagenavigator.h"
 #include "qpdfdocument.h"
 #include "qpdflink_p.h"
-
-#include "../core/web_engine_logging.h"
+#include "qtpdfglobal_p.h"
 
 #include <QtCore/qloggingcategory.h>
 #include <QtCore/qpointer.h>
 
 QT_BEGIN_NAMESPACE
 
-Q_WEBENGINE_LOGGING_CATEGORY(qLcNav, "qt.pdf.pagenavigator")
+Q_PDF_LOGGING_CATEGORY(qLcNav, "qt.pdf.pagenavigator")
 
 struct QPdfPageNavigatorPrivate
 {

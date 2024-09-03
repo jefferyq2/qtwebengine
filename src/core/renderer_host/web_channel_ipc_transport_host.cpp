@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #include "web_channel_ipc_transport_host.h"
+#include "qtwebenginecoreglobal_p.h"
 
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
@@ -10,7 +11,6 @@
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
 #include "qtwebengine/browser/qtwebchannel.mojom.h"
-#include "web_engine_logging.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>

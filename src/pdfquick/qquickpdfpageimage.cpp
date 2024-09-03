@@ -3,13 +3,13 @@
 
 #include "qquickpdfpageimage_p.h"
 #include "qquickpdfdocument_p.h"
-#include "../core/web_engine_logging.h"
 #include <private/qpdffile_p.h>
+#include <private/qtpdfglobal_p.h>
 #include <QtQuick/private/qquickimage_p_p.h>
 
 QT_BEGIN_NAMESPACE
 
-Q_WEBENGINE_LOGGING_CATEGORY(qLcImg, "qt.pdf.image")
+Q_PDF_LOGGING_CATEGORY(qLcImg, "qt.pdf.image")
 
 /*!
     \qmltype PdfPageImage

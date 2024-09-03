@@ -99,7 +99,6 @@
 #include "profile_adapter.h"
 #include "type_conversion.h"
 #include "web_engine_library_info.h"
-#include "web_engine_logging.h"
 
 #include <QFileInfo>
 #include <QGuiApplication>
