@@ -118,7 +118,7 @@
 #include <QOffscreenSurface>
 
 #if BUILDFLAG(IS_OZONE)
-#include "ozone/gl_context_qt.h"
+#include "ozone/ozone_util_qt.h"
 
 #include <QOpenGLContext>
 #include <qopenglcontext_platform.h>
@@ -503,11 +503,9 @@ static void logContext(const std::string &glType, base::CommandLine *cmd)
 
 #if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
         log << QLatin1StringView("Using GLX:")
-            << QLatin1StringView(GLContextHelper::getGlxPlatformInterface() ? "yes" : "no")
-            << QLatin1StringView("\n");
+            << QLatin1StringView(OzoneUtilQt::usingGLX() ? "yes" : "no") << QLatin1StringView("\n");
         log << QLatin1StringView("Using EGL:")
-            << QLatin1StringView(GLContextHelper::getEglPlatformInterface() ? "yes" : "no")
-            << QLatin1StringView("\n");
+            << QLatin1StringView(OzoneUtilQt::usingEGL() ? "yes" : "no") << QLatin1StringView("\n");
         log << QLatin1StringView("Using Shared GL:")
             << QLatin1StringView(qt_gl_global_share_context() ? "yes" : "no")
             << QLatin1StringView("\n");
@@ -713,11 +711,6 @@ void WebEngineContext::destroy()
 
     // Destroy the main runner, this stops main message loop
     m_browserRunner.reset();
-
-#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
-    // gpu thread is no longer around, so no more context is used, remove the helper
-    GLContextHelper::destroy();
-#endif
 
     // These would normally be in the content-runner, but we allocated them separately:
     m_mojoIpcSupport.reset();
@@ -1023,10 +1016,6 @@ WebEngineContext::WebEngineContext()
     }
 
     initializeFeatureList(parsedCommandLine, enableFeatures, disableFeatures);
-
-#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE)
-    GLContextHelper::initialize();
-#endif
 
     // If user requested GL support instead of using Skia rendering to
     // bitmaps, use software rendering via software OpenGL. This might be less

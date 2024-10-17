@@ -11,7 +11,7 @@
 #include <QtQuick/qquickwindow.h>
 #include <QtQuick/qsgtexture.h>
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 #if BUILDFLAG(IS_OZONE_X11)
 // We need to define USE_VULKAN_XCB for proper vulkan function pointers.
 // Avoiding it may lead to call wrong vulkan functions.
@@ -23,7 +23,7 @@
 #include "gpu/vulkan/vulkan_device_queue.h"
 #include "third_party/skia/include/gpu/vk/GrVkTypes.h"
 #include "third_party/skia/include/gpu/ganesh/vk/GrVkBackendSurface.h"
-#endif // defined(USE_OZONE)
+#endif // BUILDFLAG(IS_OZONE)
 
 namespace QtWebEngineCore {
 
@@ -51,7 +51,7 @@ QSGTexture *NativeSkiaOutputDeviceVulkan::texture(QQuickWindow *win, uint32_t te
     if (!m_frontBuffer || !m_readyWithTexture)
         return nullptr;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     Q_ASSERT(m_contextState->gr_context_type() == gpu::GrContextType::kVulkan);
 
     GrVkImageInfo vkImageInfo;
@@ -123,7 +123,7 @@ QSGTexture *NativeSkiaOutputDeviceVulkan::texture(QQuickWindow *win, uint32_t te
     VkExternalMemoryImageCreateInfoKHR externalMemoryImageCreateInfo = {
         VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR
     };
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     VkSubresourceLayout planeLayout = {};
     VkImageDrmFormatModifierExplicitCreateInfoEXT modifierInfo = {
         VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT
@@ -219,7 +219,7 @@ QSGTexture *NativeSkiaOutputDeviceVulkan::texture(QQuickWindow *win, uint32_t te
     importedImageCreateInfo.pQueueFamilyIndices = nullptr;
     importedImageCreateInfo.initialLayout = imageLayout;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     if (nativePixmap)
         importedImageCreateInfo.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
     else
@@ -233,7 +233,7 @@ QSGTexture *NativeSkiaOutputDeviceVulkan::texture(QQuickWindow *win, uint32_t te
     if (result != VK_SUCCESS)
         qFatal() << "VULKAN: vkCreateImage failed result:" << result;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     VkImportMemoryFdInfoKHR importMemoryHandleInfo = {
         VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR
     };

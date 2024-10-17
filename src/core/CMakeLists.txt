@@ -210,6 +210,7 @@ foreach(arch ${archs})
                 ozone/gl_share_context_qt.cpp ozone/gl_share_context_qt.h
                 ozone/gl_surface_egl_qt.cpp ozone/gl_surface_egl_qt.h
                 ozone/gl_surface_qt.cpp ozone/gl_surface_qt.h
+                ozone/ozone_util_qt.cpp ozone/ozone_util_qt.h
                 ozone/platform_window_qt.cpp ozone/platform_window_qt.h
                 ozone/surface_factory_qt.cpp ozone/surface_factory_qt.h
         )

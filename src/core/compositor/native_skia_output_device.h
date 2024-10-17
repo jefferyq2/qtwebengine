@@ -118,7 +118,7 @@ protected:
         void consumeFence();
 
         sk_sp<SkImage> skImage();
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
         scoped_refptr<gfx::NativePixmap> nativePixmap();
 #elif defined(Q_OS_WIN)
         std::optional<gl::DCLayerOverlayImage> overlayImage() const;

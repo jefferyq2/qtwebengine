@@ -47,4 +47,3 @@ private:
 } // namespace QtWebEngineCore
 
 #endif // SURFACE_FACTORY_QT
-

@@ -27,7 +27,7 @@ public:
     void ReadCustomData(ui::ClipboardBuffer clipboard_type, const std::u16string &type, const ui::DataTransferEndpoint *data_dst, std::u16string *result) const override;
     void ReadBookmark(const ui::DataTransferEndpoint *data_dst, std::u16string *title, std::string *url) const override;
     void ReadData(const ui::ClipboardFormatType &format, const ui::DataTransferEndpoint *data_dst, std::string *result) const override;
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     bool IsSelectionBufferAvailable() const override;
 #endif
     void OnPreShutdown() override {}

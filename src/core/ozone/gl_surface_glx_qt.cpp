@@ -67,7 +67,7 @@ GLDisplay *GLSurfaceGLXQt::InitializeOneOff(gl::GpuPreference preference)
 
     g_display = GLDisplayManagerX11::GetInstance()->GetDisplay(preference);
     if (!g_display->GetDisplay()) {
-        LOG(ERROR) << "GLContextHelper::getXDisplay() failed.";
+        LOG(ERROR) << "gl::GLDisplayX11::GetDisplay() failed.";
         return nullptr;
     }
 

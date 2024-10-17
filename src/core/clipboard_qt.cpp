@@ -425,7 +425,7 @@ void ClipboardQt::WriteFilenames(std::vector<ui::FileInfo> filenames)
     getUncommittedData()->setUrls(urls);
 }
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 bool ClipboardQt::IsSelectionBufferAvailable() const
 {
     return QGuiApplication::clipboard()->supportsSelection();

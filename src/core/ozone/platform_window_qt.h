@@ -61,4 +61,4 @@ private:
 
 } // namespace ui
 
-#endif //PLATFORM_WINDOW_QT_H
+#endif // PLATFORM_WINDOW_QT_H

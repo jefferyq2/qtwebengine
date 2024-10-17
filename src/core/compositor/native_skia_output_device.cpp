@@ -19,7 +19,7 @@
 #include "ui/gfx/gpu_fence.h"
 #include "ui/gl/gl_fence.h"
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 #include "ui/ozone/public/ozone_platform.h"
 #endif
 
@@ -56,7 +56,7 @@ NativeSkiaOutputDevice::NativeSkiaOutputDevice(
     capabilities_.preserve_buffer_content = true;
     capabilities_.only_invalidates_damage_rect = false;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     m_isNativeBufferSupported = ui::OzonePlatform::GetInstance()
                                         ->GetPlatformRuntimeProperties()
                                         .supports_native_pixmaps;
@@ -401,7 +401,7 @@ sk_sp<SkImage> NativeSkiaOutputDevice::Buffer::skImage()
     QMutexLocker locker(&m_skImageMutex);
     return m_cachedSkImage;
 }
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 scoped_refptr<gfx::NativePixmap> NativeSkiaOutputDevice::Buffer::nativePixmap()
 {
     DCHECK(m_presentCount);

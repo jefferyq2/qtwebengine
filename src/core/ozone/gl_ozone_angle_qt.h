@@ -11,6 +11,8 @@ namespace ui {
 class GLOzoneANGLEQt : public GLOzoneEGL
 {
 public:
+    GLOzoneANGLEQt();
+
     bool InitializeStaticGLBindings(const gl::GLImplementationParts &implementation) override;
     bool InitializeExtensionSettingsOneOffPlatform(gl::GLDisplay *display) override;
     scoped_refptr<gl::GLSurface> CreateViewGLSurface(gl::GLDisplay *display,
@@ -31,6 +33,9 @@ protected:
 
     // Sets up GL bindings for the native surface.
     bool LoadGLES2Bindings(const gl::GLImplementationParts &implementation) override;
+
+private:
+    void *m_xdisplay = nullptr;
 };
 
 } // namespace ui

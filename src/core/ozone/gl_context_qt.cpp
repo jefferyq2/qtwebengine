@@ -19,7 +19,6 @@
 QT_BEGIN_NAMESPACE
 
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
-GLContextHelper* GLContextHelper::contextHelper = nullptr;
 
 namespace {
 
@@ -42,28 +41,7 @@ inline void *resourceForIntegration(const QByteArray &resource)
     return qApp->platformNativeInterface()->nativeResourceForIntegration(resource);
 }
 
-}
-
-void GLContextHelper::initialize()
-{
-    if (!contextHelper)
-        contextHelper = new GLContextHelper;
-#if QT_CONFIG(opengl)
-    if (QGuiApplication::platformName() == QLatin1String("offscreen")){
-        contextHelper->m_robustness = false;
-        return;
-    }
-
-    if (QOpenGLContext *context = qt_gl_global_share_context())
-        contextHelper->m_robustness = context->format().testOption(QSurfaceFormat::ResetNotification);
-#endif
-}
-
-void GLContextHelper::destroy()
-{
-    delete contextHelper;
-    contextHelper = nullptr;
-}
+} // namespace
 
 void* GLContextHelper::getEGLConfig()
 {
@@ -80,16 +58,6 @@ void* GLContextHelper::getGlXConfig()
 void* GLContextHelper::getEGLDisplay()
 {
     return resourceForIntegration(QByteArrayLiteral("egldisplay"));
-}
-
-void* GLContextHelper::getXDisplay()
-{
-#if QT_CONFIG(xcb)
-    auto *x11app = qGuiApp->nativeInterface<QNativeInterface::QX11Application>();
-    return x11app ? x11app->display() : nullptr;
-#else
-    return nullptr;
-#endif
 }
 
 void* GLContextHelper::getNativeDisplay()
@@ -119,27 +87,21 @@ QFunctionPointer GLContextHelper::getEglGetProcAddress()
     return get_proc_address;
 }
 
-void *GLContextHelper::getGlxPlatformInterface()
-{
-#if QT_CONFIG(xcb_glx)
-    if (QOpenGLContext *context = qt_gl_global_share_context())
-        return context->nativeInterface<QNativeInterface::QGLXContext>();
-#endif
-    return nullptr;
-}
-
-void *GLContextHelper::getEglPlatformInterface()
-{
-#if QT_CONFIG(opengl) && QT_CONFIG(egl)
-    if (QOpenGLContext *context = qt_gl_global_share_context())
-        return context->nativeInterface<QNativeInterface::QEGLContext>();
-#endif
-    return nullptr;
-}
-
 bool GLContextHelper::isCreateContextRobustnessSupported()
 {
-    return contextHelper->m_robustness;
+    static std::optional<bool> robustness;
+
+#if QT_CONFIG(opengl)
+    if (robustness.has_value())
+        return robustness.value();
+
+    if (QGuiApplication::platformName() == QLatin1String("offscreen"))
+        robustness = false;
+    else if (QOpenGLContext *context = qt_gl_global_share_context())
+        robustness = context->format().testOption(QSurfaceFormat::ResetNotification);
+#endif
+
+    return robustness.value_or(false);
 }
 
 #if QT_CONFIG(opengl) && QT_CONFIG(egl)

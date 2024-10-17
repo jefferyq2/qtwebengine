@@ -15,7 +15,7 @@
 #include "ui/base/ozone_buildflags.h"
 #include "ui/gl/gl_implementation.h"
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 #include "ui/gl/gl_bindings.h"
 #undef glBindTexture
 #undef glCreateMemoryObjectsEXT
@@ -25,6 +25,8 @@
 #undef glGetError
 #undef glImportMemoryFdEXT
 #undef glTextureStorageMem2DEXT
+
+#include "ozone/ozone_util_qt.h"
 
 #include "base/posix/eintr_wrapper.h"
 #include "third_party/skia/include/gpu/ganesh/gl/GrGLBackendSurface.h"
@@ -55,7 +57,7 @@
 
 // Keep it at the end.
 #include "ozone/gl_context_qt.h"
-#endif // defined(USE_OZONE)
+#endif // BUILDFLAG(IS_OZONE)
 
 #if defined(Q_OS_WIN)
 #include <QtCore/private/qsystemerror_p.h>
@@ -416,11 +418,9 @@ NativeSkiaOutputDeviceOpenGL::NativeSkiaOutputDeviceOpenGL(
 {
     SkColorType skColorType = kRGBA_8888_SkColorType;
 #if BUILDFLAG(IS_OZONE_X11)
-    if (GLContextHelper::getGlxPlatformInterface()
-        && m_contextState->gr_context_type() == gpu::GrContextType::kGL) {
+    if (OzoneUtilQt::usingGLX() && m_contextState->gr_context_type() == gpu::GrContextType::kGL)
         skColorType = kBGRA_8888_SkColorType;
-    }
-#endif // BUILDFLAG(IS_OZONE_X11)
+#endif
 
     capabilities_.sk_color_types[static_cast<int>(gfx::BufferFormat::RGBA_8888)] = skColorType;
     capabilities_.sk_color_types[static_cast<int>(gfx::BufferFormat::RGBX_8888)] = skColorType;
@@ -439,7 +439,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
     if (!m_frontBuffer || !m_readyWithTexture)
         return nullptr;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     scoped_refptr<gfx::NativePixmap> nativePixmap = m_frontBuffer->nativePixmap();
 #if BUILDFLAG(ENABLE_VULKAN)
     GrVkImageInfo vkImageInfo;
@@ -496,12 +496,12 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         qWarning("No IOSurface.");
         return nullptr;
     }
-#endif
+#endif // BUILDFLAG(IS_OZONE)
 
     QQuickWindow::CreateTextureOptions texOpts(textureOptions);
     QSGTexture *texture = nullptr;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     QOpenGLContext *glContext = QOpenGLContext::currentContext();
     auto glFun = glContext->functions();
     GLuint glTexture = 0;
@@ -510,7 +510,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         Q_ASSERT(m_contextState->gr_context_type() == gpu::GrContextType::kGL);
 
 #if BUILDFLAG(IS_OZONE_X11)
-        if (GLContextHelper::getGlxPlatformInterface()) {
+        if (OzoneUtilQt::usingGLX()) {
             x11::Pixmap pixmapId =
                     XPixmapFromNativePixmap(*(gfx::NativePixmapDmaBuf *)nativePixmap.get());
             if (pixmapId == x11::Pixmap::None)
@@ -524,7 +524,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
             };
             // clang-format on
 
-            Display *display = static_cast<Display *>(GLContextHelper::getXDisplay());
+            Display *display = static_cast<Display *>(OzoneUtilQt::getXDisplay());
             GLXPixmap glxPixmap = glXCreatePixmap(display, GetFBConfig(display),
                                                   static_cast<::Pixmap>(pixmapId), pixmapAttribs);
 
@@ -540,7 +540,8 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         }
 #endif // BUILDFLAG(IS_OZONE_X11)
 
-        if (GLContextHelper::getEglPlatformInterface()) {
+#if QT_CONFIG(egl)
+        if (OzoneUtilQt::usingEGL()) {
             EGLHelper *eglHelper = EGLHelper::instance();
             auto *eglFun = eglHelper->functions();
 
@@ -586,6 +587,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
                 eglFun->eglDestroyImage(GLContextHelper::getEGLDisplay(), eglImage);
             };
         }
+#endif // QT_CONFIG(egl)
     } else {
 #if BUILDFLAG(ENABLE_VULKAN)
         Q_ASSERT(m_contextState->gr_context_type() == gpu::GrContextType::kVulkan);
@@ -693,7 +695,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         auto glFun = glContext->functions();
         glFun->glDeleteTextures(1, &glTexture);
     };
-#endif // defined(USE_OZONE)
+#endif // BUILDFLAG(IS_OZONE)
 
     return texture;
 }

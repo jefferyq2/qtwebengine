@@ -4,7 +4,6 @@
 #ifndef GL_GL_CONTEXT_QT_H_
 #define GL_GL_CONTEXT_QT_H_
 
-#include <QObject>
 #include <QtCore/qscopedpointer.h>
 #include <QtGui/qtgui-config.h>
 
@@ -23,26 +22,16 @@ QT_BEGIN_NAMESPACE
 
 class QOffscreenSurface;
 
-class GLContextHelper : public QObject {
-    Q_OBJECT
+class GLContextHelper
+{
 public:
-    static void initialize();
-    static void destroy();
-
     static void* getEGLConfig();
     static void* getGlXConfig();
     static void* getEGLDisplay();
-    static void* getXDisplay();
     static void* getNativeDisplay();
     static QFunctionPointer getGlXGetProcAddress();
     static QFunctionPointer getEglGetProcAddress();
     static bool isCreateContextRobustnessSupported();
-    static void *getGlxPlatformInterface();
-    static void *getEglPlatformInterface();
-
-private:
-    static GLContextHelper* contextHelper;
-    bool m_robustness = false;
 };
 
 #if QT_CONFIG(opengl)

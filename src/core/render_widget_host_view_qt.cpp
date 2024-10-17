@@ -41,7 +41,7 @@
 #include "ui/events/keycodes/dom/dom_keyboard_layout_map.h"
 #include "ui/gfx/image/image_skia.h"
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
 #endif
 
@@ -743,7 +743,7 @@ void RenderWidgetHostViewQt::OnTextSelectionChanged(content::TextInputManager *t
     if (!focused_view)
       return;
 
-#if defined(USE_OZONE)
+#if BUILDFLAG(IS_OZONE)
     if (ui::Clipboard::IsSupportedClipboardBuffer(ui::ClipboardBuffer::kSelection)) {
         const content::TextInputManager::TextSelection *selection = GetTextInputManager()->GetTextSelection(focused_view);
         if (selection->selected_text().length() && selection->user_initiated()) {
@@ -752,7 +752,7 @@ void RenderWidgetHostViewQt::OnTextSelectionChanged(content::TextInputManager *t
             clipboard_writer.WriteText(selection->selected_text());
         }
     }
-#endif // defined(USE_OZONE)
+#endif // BUILDFLAG(IS_OZONE)
 
     m_imState |= ImStateFlags::TextSelectionUpdated;
     if (m_imState == ImStateFlags::AllFlags

@@ -4,6 +4,7 @@
 #include "gl_context_qt.h"
 #include "gl_ozone_angle_qt.h"
 #include "gl_surface_egl_qt.h"
+#include "ozone_util_qt.h"
 
 #include "ui/base/ozone_buildflags.h"
 #include "ui/gl/gl_bindings.h"
@@ -23,6 +24,13 @@ extern __eglMustCastToProperFunctionPointerType EGL_GetProcAddress(const char *p
 
 namespace ui {
 
+GLOzoneANGLEQt::GLOzoneANGLEQt()
+{
+#if BUILDFLAG(IS_OZONE_X11)
+    m_xdisplay = OzoneUtilQt::getXDisplay();
+#endif
+}
+
 bool GLOzoneANGLEQt::LoadGLES2Bindings(const gl::GLImplementationParts & /*implementation*/)
 {
     gl::SetGLGetProcAddressProc(&EGL_GetProcAddress);
@@ -34,7 +42,7 @@ bool GLOzoneANGLEQt::InitializeStaticGLBindings(const gl::GLImplementationParts 
     bool res = GLOzoneEGL::InitializeStaticGLBindings(implementation);
 
 #if BUILDFLAG(IS_OZONE_X11)
-    if (GLContextHelper::getGlxPlatformInterface()) {
+    if (OzoneUtilQt::usingGLX()) {
         gl::SetGLGetProcAddressProc(reinterpret_cast<gl::GLGetProcAddressProc>(
                 GLContextHelper::getGlXGetProcAddress()));
         gl::InitializeStaticGLBindingsGLX();
@@ -51,11 +59,10 @@ bool GLOzoneANGLEQt::InitializeExtensionSettingsOneOffPlatform(gl::GLDisplay *di
             static_cast<gl::GLDisplayEGL *>(display));
 
 #if BUILDFLAG(IS_OZONE_X11)
-    if (GLContextHelper::getGlxPlatformInterface()) {
+    if (OzoneUtilQt::usingGLX()) {
         gl::SetGLGetProcAddressProc(reinterpret_cast<gl::GLGetProcAddressProc>(
                 GLContextHelper::getGlXGetProcAddress()));
-        std::string extensions =
-                glXQueryExtensionsString((struct _XDisplay *)GLContextHelper::getXDisplay(), 0);
+        std::string extensions = glXQueryExtensionsString((struct _XDisplay *)m_xdisplay, 0);
         gl::g_driver_glx.InitializeExtensionBindings(extensions.c_str());
         gl::SetGLGetProcAddressProc(&EGL_GetProcAddress);
     }
@@ -87,9 +94,8 @@ scoped_refptr<gl::GLSurface> GLOzoneANGLEQt::CreateOffscreenGLSurface(gl::GLDisp
 gl::EGLDisplayPlatform GLOzoneANGLEQt::GetNativeDisplay()
 {
 #if BUILDFLAG(IS_OZONE_X11)
-    void *xdisplay = GLContextHelper::getXDisplay();
-    if (xdisplay)
-        return gl::EGLDisplayPlatform(reinterpret_cast<EGLNativeDisplayType>(xdisplay));
+    if (m_xdisplay)
+        return gl::EGLDisplayPlatform(reinterpret_cast<EGLNativeDisplayType>(m_xdisplay));
 #endif
 
     if (gl::g_driver_egl.client_ext.b_EGL_MESA_platform_surfaceless)
