@@ -41,6 +41,10 @@
 #include "ui/gfx/x/xproto.h"
 #endif // BUILDFLAG(IS_OZONE_X11)
 
+#if QT_CONFIG(egl)
+#include "ozone/egl_helper.h"
+#endif
+
 #if BUILDFLAG(ENABLE_VULKAN)
 #if BUILDFLAG(IS_OZONE_X11)
 // We need to define USE_VULKAN_XCB for proper vulkan function pointers.
@@ -48,15 +52,13 @@
 // This is originally defined in chromium/gpu/vulkan/BUILD.gn.
 #define USE_VULKAN_XCB
 #endif // BUILDFLAG(IS_OZONE_X11)
+
 #include "components/viz/common/gpu/vulkan_context_provider.h"
 #include "gpu/vulkan/vulkan_device_queue.h"
 #include "gpu/vulkan/vulkan_function_pointers.h"
 #include "third_party/skia/include/gpu/vk/GrVkTypes.h"
 #include "third_party/skia/include/gpu/ganesh/vk/GrVkBackendSurface.h"
 #endif // BUILDFLAG(ENABLE_VULKAN)
-
-// Keep it at the end.
-#include "ozone/gl_context_qt.h"
 #endif // BUILDFLAG(IS_OZONE)
 
 #if defined(Q_OS_WIN)
@@ -568,9 +570,10 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
                 EGL_NONE
             };
             // clang-format on
-            EGLImage eglImage = eglFun->eglCreateImage(GLContextHelper::getEGLDisplay(),
-                                                       EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
-                                                       (EGLClientBuffer)NULL, attributeList);
+            EGLDisplay eglDisplay = eglHelper->getEGLDisplay();
+            EGLImage eglImage =
+                    eglFun->eglCreateImage(eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
+                                           (EGLClientBuffer)NULL, attributeList);
             Q_ASSERT(eglImage != EGL_NO_IMAGE_KHR);
 
             static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC imageTargetTexture =
@@ -582,9 +585,10 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
             imageTargetTexture(GL_TEXTURE_2D, eglImage);
             glFun->glBindTexture(GL_TEXTURE_2D, 0);
 
-            m_frontBuffer->textureCleanupCallback = [glFun, eglFun, glTexture, eglImage]() {
+            m_frontBuffer->textureCleanupCallback = [glFun, eglFun, glTexture, eglDisplay,
+                                                     eglImage]() {
                 glFun->glDeleteTextures(1, &glTexture);
-                eglFun->eglDestroyImage(GLContextHelper::getEGLDisplay(), eglImage);
+                eglFun->eglDestroyImage(eglDisplay, eglImage);
             };
         }
 #endif // QT_CONFIG(egl)

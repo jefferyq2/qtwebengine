@@ -8,6 +8,8 @@
 #include "gl_context_qt.h"
 #include "ozone/gl_surface_glx_qt.h"
 
+#include <QtCore/qglobal.h>
+
 #include "ui/gl/gl_bindings.h"
 #include "ui/gl/gl_display.h"
 #include "ui/gl/gl_display_manager.h"

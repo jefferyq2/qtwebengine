@@ -6,15 +6,13 @@
 // found in the LICENSE file.
 
 #include "gl_context_qt.h"
+#include "ozone/egl_helper.h"
 #include "ozone/gl_surface_egl_qt.h"
 
-#include "ui/gl/egl_util.h"
 #include "ui/gl/gl_bindings.h"
 #include "ui/gl/gl_display.h"
 #include "ui/gl/gl_display_manager.h"
 #include "ui/gl/init/gl_factory.h"
-
-using ui::GetLastEGLErrorString;
 
 namespace gl {
 
@@ -37,11 +35,12 @@ gl::GLDisplay *GLSurfaceEGLQt::InitializeOneOff(gl::GpuPreference preference)
     if (s_initialized)
         return g_display;
 
+    EGLHelper *eglHelper = EGLHelper::instance();
     auto *egl_display = GLDisplayManagerEGL::GetInstance()->GetDisplay(preference);
     g_display = egl_display;
-    egl_display->SetDisplay(GLContextHelper::getEGLDisplay());
+    egl_display->SetDisplay(eglHelper->getEGLDisplay());
     if (!egl_display->GetDisplay()) {
-        LOG(ERROR) << "GLContextHelper::getEGLDisplay() failed.";
+        LOG(ERROR) << "EGLHelper::getEGLDisplay() failed.";
         return nullptr;
     }
 
@@ -51,16 +50,14 @@ gl::GLDisplay *GLSurfaceEGLQt::InitializeOneOff(gl::GpuPreference preference)
                 GLContextHelper::isCreateContextRobustnessSupported();
     }
 
-#if QT_CONFIG(opengl)
     if (egl_display->ext->b_EGL_EXT_image_dma_buf_import
         || egl_display->ext->b_EGL_EXT_image_dma_buf_import_modifiers
         || egl_display->ext->b_EGL_MESA_image_dma_buf_export) {
-        const bool dmaBufSupported = EGLHelper::instance()->isDmaBufSupported();
+        const bool dmaBufSupported = eglHelper->isDmaBufSupported();
         egl_display->ext->b_EGL_EXT_image_dma_buf_import = dmaBufSupported;
         egl_display->ext->b_EGL_EXT_image_dma_buf_import_modifiers = dmaBufSupported;
         egl_display->ext->b_EGL_MESA_image_dma_buf_export = dmaBufSupported;
     }
-#endif
 
     g_config = GLContextHelper::getEGLConfig();
     if (!g_config) {
@@ -69,7 +66,7 @@ gl::GLDisplay *GLSurfaceEGLQt::InitializeOneOff(gl::GpuPreference preference)
     }
 
     if (!eglInitialize(egl_display->GetDisplay(), NULL, NULL)) {
-        LOG(ERROR) << "eglInitialize failed with error " << GetLastEGLErrorString();
+        LOG(ERROR) << "eglInitialize failed with error " << eglHelper->getLastEGLErrorString();
         return nullptr;
     }
 
@@ -106,7 +103,7 @@ bool GLSurfaceEGLQt::Initialize(GLSurfaceFormat format)
     Q_ASSERT(!m_surfaceBuffer);
     m_format = format;
 
-    EGLDisplay display = GLContextHelper::getEGLDisplay();
+    EGLDisplay display = EGLHelper::instance()->getEGLDisplay();
     if (!display) {
         LOG(ERROR) << "Trying to create surface with invalid display.";
         return false;
@@ -123,7 +120,8 @@ bool GLSurfaceEGLQt::Initialize(GLSurfaceFormat format)
                                         g_config,
                                         pbuffer_attributes);
     if (!m_surfaceBuffer) {
-        VLOG(1) << "eglCreatePbufferSurface failed with error " << GetLastEGLErrorString();
+        VLOG(1) << "eglCreatePbufferSurface failed with error "
+                << EGLHelper::instance()->getLastEGLErrorString();
         Destroy();
         return false;
     }
@@ -134,8 +132,11 @@ bool GLSurfaceEGLQt::Initialize(GLSurfaceFormat format)
 void GLSurfaceEGLQt::Destroy()
 {
     if (m_surfaceBuffer) {
-        if (!eglDestroySurface(GLContextHelper::getEGLDisplay(), m_surfaceBuffer))
-            LOG(ERROR) << "eglDestroySurface failed with error " << GetLastEGLErrorString();
+        EGLHelper *eglHelper = EGLHelper::instance();
+        if (!eglDestroySurface(eglHelper->getEGLDisplay(), m_surfaceBuffer)) {
+            LOG(ERROR) << "eglDestroySurface failed with error "
+                       << eglHelper->getLastEGLErrorString();
+        }
 
         m_surfaceBuffer = 0;
     }

@@ -4,9 +4,7 @@
 #include "surface_factory_qt.h"
 
 #include "qtwebenginecoreglobal_p.h"
-#include "ozone/gl_context_qt.h"
 #include "ozone/gl_ozone_angle_qt.h"
-#include "ozone/gl_ozone_egl_qt.h"
 #include "ozone/ozone_util_qt.h"
 #include "qtwebenginecoreglobal_p.h"
 
@@ -15,7 +13,6 @@
 #include "ui/gfx/linux/drm_util_linux.h"
 #include "ui/gfx/linux/gbm_buffer.h"
 #include "ui/gfx/linux/native_pixmap_dmabuf.h"
-#include "ui/gl/egl_util.h"
 
 #include <QDebug>
 #include <QtGui/qtgui-config.h>
@@ -24,6 +21,11 @@
 #include "ozone/gl_ozone_glx_qt.h"
 
 #include "ui/gfx/linux/gpu_memory_buffer_support_x11.h"
+#endif
+
+#if QT_CONFIG(egl)
+#include "ozone/egl_helper.h"
+#include "ozone/gl_ozone_egl_qt.h"
 #endif
 
 #if QT_CONFIG(webengine_vulkan)
@@ -222,16 +224,15 @@ SurfaceFactoryQt::CreateNativePixmapFromHandle(
         }
         attrs.push_back(EGL_NONE);
 
-        EGLDisplay eglDisplay = GLContextHelper::getEGLDisplay();
         EGLHelper *eglHelper = EGLHelper::instance();
         auto *eglFun = eglHelper->functions();
+        EGLDisplay eglDisplay = eglHelper->getEGLDisplay();
 
         EGLImage eglImage =
                 eglFun->eglCreateImage(eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
                                        (EGLClientBuffer)NULL, attrs.data());
         if (eglImage == EGL_NO_IMAGE_KHR) {
-            qFatal() << "Failed to import EGLImage:"
-                     << ui::GetEGLErrorString(eglFun->eglGetError());
+            qFatal() << "Failed to import EGLImage:" << eglHelper->getLastEGLErrorString();
         }
 
         Q_ASSERT(numPlanes <= 3);
@@ -239,8 +240,7 @@ SurfaceFactoryQt::CreateNativePixmapFromHandle(
         int strides[3];
         int offsets[3];
         if (!eglFun->eglExportDMABUFImageMESA(eglDisplay, eglImage, fds, strides, offsets)) {
-            qFatal() << "Failed to export EGLImage:"
-                     << ui::GetEGLErrorString(eglFun->eglGetError());
+            qFatal() << "Failed to export EGLImage:" << eglHelper->getLastEGLErrorString();
         }
 
         bufferHandle.modifier = handle.modifier;
