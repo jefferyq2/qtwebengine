@@ -797,7 +797,7 @@ if(NOT QT_SUPERBUILD)
     qt_configure_add_report_entry(
         TYPE NOTE
         MESSAGE "\nScanning for ide sources...\nPlease note configure can execute faster if called with:\n 'qt-configure-module path/to/src -- -DQT_SHOW_EXTRA_IDE_SOURCES=OFF'"
-        CONDITION NOT QT_SHOW_EXTRA_IDE_SOURCES
+        CONDITION QT_SHOW_EXTRA_IDE_SOURCES OR (NOT DEFINED QT_SHOW_EXTRA_IDE_SOURCES AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
     )
 endif()
 
