@@ -1157,9 +1157,9 @@ void tst_QQuickWebEngineView::javascriptClipboard()
                 "if (result.state == 'prompt') accessPrompt = true;"
             "})"));
 
-    QTRY_COMPARE(evaluateJavaScriptSync(view, "accessGranted").toBool(), javascriptCanAccessClipboard && javascriptCanPaste);
+    QTRY_COMPARE(evaluateJavaScriptSync(view, "accessGranted").toBool(), javascriptCanAccessClipboard);
     QTRY_COMPARE(evaluateJavaScriptSync(view, "accessDenied").toBool(), false);
-    QTRY_COMPARE(evaluateJavaScriptSync(view, "accessPrompt").toBool(), !javascriptCanAccessClipboard || !javascriptCanPaste);
+    QTRY_COMPARE(evaluateJavaScriptSync(view, "accessPrompt").toBool(), !javascriptCanAccessClipboard);
 
     evaluateJavaScriptSync(view,
         QStringLiteral(
