@@ -1,10 +1,6 @@
 // Copyright (C) 2024 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-// Copyright 2022 The Chromium Authors
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE.Chromium file.
-
 #include "native_skia_output_device_opengl.h"
 
 #include <QtGui/qopenglcontext.h>
@@ -13,21 +9,10 @@
 #include <QtQuick/qsgtexture.h>
 
 #include "ui/base/ozone_buildflags.h"
-#include "ui/gl/gl_implementation.h"
 
 #if BUILDFLAG(IS_OZONE)
 #include "ozone/gl_helper.h"
 #include "ozone/ozone_util_qt.h"
-
-#include "ui/gl/gl_bindings.h"
-#undef glBindTexture
-#undef glCreateMemoryObjectsEXT
-#undef glDeleteMemoryObjectsEXT
-#undef glDeleteTextures
-#undef glEGLImageTargetTexture2DOES
-#undef glGenTextures
-#undef glGetError
-#undef glImportMemoryFdEXT
 
 #include "base/posix/eintr_wrapper.h"
 #include "third_party/skia/include/gpu/ganesh/gl/GrGLBackendSurface.h"
@@ -35,11 +20,11 @@
 #include "ui/gfx/linux/native_pixmap_dmabuf.h"
 
 #if BUILDFLAG(IS_OZONE_X11)
-#include "ui/gfx/x/connection.h"
-#include "ui/gfx/x/dri3.h"
-#include "ui/gfx/x/future.h"
-#include "ui/gfx/x/glx.h"
-#include "ui/gfx/x/xproto.h"
+#include "ozone/glx_helper.h"
+
+#if !defined(GL_RGBA8_OES)
+#define GL_RGBA8_OES 0x8058
+#endif
 #endif // BUILDFLAG(IS_OZONE_X11)
 
 #if QT_CONFIG(egl)
@@ -53,10 +38,10 @@
 // This is originally defined in chromium/gpu/vulkan/BUILD.gn.
 #define USE_VULKAN_XCB
 #endif // BUILDFLAG(IS_OZONE_X11)
+#include "gpu/vulkan/vulkan_function_pointers.h"
 
 #include "components/viz/common/gpu/vulkan_context_provider.h"
 #include "gpu/vulkan/vulkan_device_queue.h"
-#include "gpu/vulkan/vulkan_function_pointers.h"
 #include "third_party/skia/include/gpu/vk/GrVkTypes.h"
 #include "third_party/skia/include/gpu/ganesh/vk/GrVkBackendSurface.h"
 #endif // BUILDFLAG(ENABLE_VULKAN)
@@ -68,79 +53,6 @@
 #endif
 
 namespace QtWebEngineCore {
-
-#if BUILDFLAG(IS_OZONE_X11)
-namespace {
-
-// Based on //ui/ozone/platform/x11/native_pixmap_egl_x11_binding.cc
-x11::Pixmap XPixmapFromNativePixmap(const gfx::NativePixmap &nativePixmap)
-{
-    // Hard coded values for gfx::BufferFormat::BGRA_8888:
-    const uint8_t depth = 32;
-    const uint8_t bpp = 32;
-
-    const int dmaBufFd = HANDLE_EINTR(dup(nativePixmap.GetDmaBufFd(0)));
-    if (dmaBufFd < 0) {
-        qWarning("Could not import the dma-buf as an XPixmap because the FD couldn't be dup()ed.");
-        return x11::Pixmap::None;
-    }
-    x11::RefCountedFD refCountedFD(dmaBufFd);
-
-    uint32_t size = base::checked_cast<uint32_t>(nativePixmap.GetDmaBufPlaneSize(0));
-    uint16_t width = base::checked_cast<uint16_t>(nativePixmap.GetBufferSize().width());
-    uint16_t height = base::checked_cast<uint16_t>(nativePixmap.GetBufferSize().height());
-    uint16_t stride = base::checked_cast<uint16_t>(nativePixmap.GetDmaBufPitch(0));
-
-    auto *connection = x11::Connection::Get();
-    const x11::Pixmap pixmapId = connection->GenerateId<x11::Pixmap>();
-    if (pixmapId == x11::Pixmap::None) {
-        qWarning("Could not import the dma-buf as an XPixmap because an ID couldn't be generated.");
-        return x11::Pixmap::None;
-    }
-
-    auto response = connection->dri3()
-                            .PixmapFromBuffer(pixmapId, connection->default_root(), size, width,
-                                              height, stride, depth, bpp, refCountedFD)
-                            .Sync();
-
-    if (response.error) {
-        qWarning() << "Could not import the dma-buf as an XPixmap because "
-                      "PixmapFromBuffer() failed; error: "
-                   << response.error->ToString();
-        return x11::Pixmap::None;
-    }
-
-    return pixmapId;
-}
-
-GLXFBConfig GetFBConfig(Display *display)
-{
-    // clang-format off
-    static const int configAttribs[] = {
-        GLX_RED_SIZE, 8,
-        GLX_GREEN_SIZE, 8,
-        GLX_BLUE_SIZE, 8,
-        GLX_ALPHA_SIZE, 8,
-        GLX_BUFFER_SIZE, 32,
-        GLX_BIND_TO_TEXTURE_RGBA_EXT, 1,
-        GLX_DRAWABLE_TYPE, GLX_PIXMAP_BIT,
-        GLX_BIND_TO_TEXTURE_TARGETS_EXT, GLX_TEXTURE_2D_BIT_EXT,
-        GLX_DOUBLEBUFFER, 0,
-        GLX_Y_INVERTED_EXT, static_cast<int>(GLX_DONT_CARE),
-        0
-    };
-    // clang-format on
-
-    int numConfigs = 0;
-    GLXFBConfig *configs = glXChooseFBConfig(display, /* screen */ 0, configAttribs, &numConfigs);
-    if (!configs || numConfigs < 1)
-        qFatal("GLX: Failed to find frame buffer configuration for pixmap.");
-
-    return configs[0];
-}
-
-} // namespace
-#endif // BUILDFLAG(IS_OZONE_X11)
 
 #if defined(Q_OS_WIN)
 #if defined(WGL_NV_DX_interop)
@@ -514,10 +426,32 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
 
 #if BUILDFLAG(IS_OZONE_X11)
         if (OzoneUtilQt::usingGLX()) {
-            x11::Pixmap pixmapId =
-                    XPixmapFromNativePixmap(*(gfx::NativePixmapDmaBuf *)nativePixmap.get());
-            if (pixmapId == x11::Pixmap::None)
-                qFatal("GLX: Failed to import XPixmap.");
+            GLXHelper *glxHelper = GLXHelper::instance();
+            auto *glxFun = glxHelper->functions();
+
+            const auto dmaBufFd = HANDLE_EINTR(dup(nativePixmap->GetDmaBufFd(0)));
+            if (dmaBufFd < 0) {
+                qFatal("GLX: Could not import the dma-buf as an XPixmap because the FD couldn't be "
+                       "dup()ed.");
+            }
+            base::ScopedFD scopedFd(dmaBufFd);
+
+            DCHECK(base::IsValueInRangeForNumericType<uint32_t>(
+                    nativePixmap->GetDmaBufPlaneSize(0)));
+            uint32_t size = base::checked_cast<uint32_t>(nativePixmap->GetDmaBufPlaneSize(0));
+            DCHECK(base::IsValueInRangeForNumericType<uint16_t>(
+                    nativePixmap->GetBufferSize().width()));
+            uint16_t width = base::checked_cast<uint16_t>(nativePixmap->GetBufferSize().width());
+            DCHECK(base::IsValueInRangeForNumericType<uint16_t>(
+                    nativePixmap->GetBufferSize().height()));
+            uint16_t height = base::checked_cast<uint16_t>(nativePixmap->GetBufferSize().height());
+            DCHECK(base::IsValueInRangeForNumericType<uint16_t>(nativePixmap->GetDmaBufPitch(0)));
+            uint16_t stride = base::checked_cast<uint16_t>(nativePixmap->GetDmaBufPitch(0));
+
+            uint32_t pixmapId = glxHelper->importBufferAsPixmap(scopedFd.release(), size, width,
+                                                                height, stride);
+            if (!pixmapId)
+                qFatal("GLX: Could not import the dma-buf as an XPixmap.");
 
             // clang-format off
             static const int pixmapAttribs[] = {
@@ -527,16 +461,18 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
             };
             // clang-format on
 
-            Display *display = static_cast<Display *>(OzoneUtilQt::getXDisplay());
-            GLXPixmap glxPixmap = glXCreatePixmap(display, GetFBConfig(display),
+            Display *display = glxHelper->getXDisplay();
+            GLXPixmap glxPixmap = glXCreatePixmap(display, glxHelper->getFBConfig(),
                                                   static_cast<::Pixmap>(pixmapId), pixmapAttribs);
 
             glFun->glGenTextures(1, &glTexture);
             glFun->glBindTexture(GL_TEXTURE_2D, glTexture);
-            glXBindTexImageEXT(display, glxPixmap, GLX_FRONT_LEFT_EXT, nullptr);
+            glxFun->glXBindTexImageEXT(display, glxPixmap, GLX_FRONT_LEFT_EXT, nullptr);
             glFun->glBindTexture(GL_TEXTURE_2D, 0);
 
-            m_frontBuffer->textureCleanupCallback = [glFun, glTexture, display, glxPixmap]() {
+            m_frontBuffer->textureCleanupCallback = [glFun, glxFun, display, glxPixmap,
+                                                     glTexture]() {
+                glxFun->glXReleaseTexImageEXT(display, glxPixmap, GLX_FRONT_LEFT_EXT);
                 glFun->glDeleteTextures(1, &glTexture);
                 glXDestroyGLXPixmap(display, glxPixmap);
             };
@@ -549,10 +485,10 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
             auto *eglFun = eglHelper->functions();
             auto *glExtFun = GLHelper::instance()->functions();
 
-            const int dmaBufFd = HANDLE_EINTR(dup(nativePixmap->GetDmaBufFd(0)));
+            const auto dmaBufFd = HANDLE_EINTR(dup(nativePixmap->GetDmaBufFd(0)));
             if (dmaBufFd < 0) {
-                qFatal("Could not import the dma-buf as an EGLImage because the FD couldn't be "
-                       "dup()ed.");
+                qFatal("EGL: Could not import the dma-buf as an EGLImage because the FD couldn't "
+                       "be dup()ed.");
             }
             base::ScopedFD scopedFd(dmaBufFd);
 

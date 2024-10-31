@@ -1,4 +1,5 @@
 import("//build/config/features.gni")
+import("//build/config/linux/pkg_config.gni")
 import("//build/config/ui.gni")
 import("//chrome/common/features.gni")
 import("//components/spellcheck/spellcheck_build_features.gni")
@@ -99,6 +100,12 @@ config("cpp20_config") {
   }
 }
 
+if (ozone_platform_x11) {
+  pkg_config("xcb-dri3") {
+    packages = [ "xcb-dri3" ]
+  }
+}
+
 shared_library("QtWebEngineCore") {
   rsp_types = [ "objects", "archives", "libs", "ldir"]
   configs += [
@@ -164,6 +171,10 @@ shared_library("QtWebEngineCore") {
   if (use_ozone) {
     _ozone_extra_directory = get_path_info(ozone_extra_path, "dir")
     deps += [ "$_ozone_extra_directory:qt" ]
+
+    if (ozone_platform_x11) {
+      configs += [ ":xcb-dri3" ]
+    }
   }
 
   if (enable_webrtc) {

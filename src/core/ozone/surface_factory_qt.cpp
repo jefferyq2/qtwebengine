@@ -17,7 +17,7 @@
 #include <QDebug>
 #include <QtGui/qtgui-config.h>
 
-#if BUILDFLAG(IS_OZONE_X11)
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE_X11)
 #include "ozone/gl_ozone_glx_qt.h"
 
 #include "ui/gfx/linux/gpu_memory_buffer_support_x11.h"
@@ -36,7 +36,7 @@ namespace QtWebEngineCore {
 
 SurfaceFactoryQt::SurfaceFactoryQt()
 {
-#if BUILDFLAG(IS_OZONE_X11)
+#if QT_CONFIG(opengl) && BUILDFLAG(IS_OZONE_X11)
     if (OzoneUtilQt::usingGLX()) {
         m_impls.push_back({ gl::GLImplementationParts(gl::kGLImplementationDesktopGL),
                             std::make_unique<ui::GLOzoneGLXQt>() });
@@ -92,6 +92,7 @@ SurfaceFactoryQt::CreateVulkanImplementation(bool /*allow_protected_memory*/,
 
 bool SurfaceFactoryQt::CanCreateNativePixmapForFormat(gfx::BufferFormat format)
 {
+#if QT_CONFIG(opengl)
 #if BUILDFLAG(IS_OZONE_X11)
     if (OzoneUtilQt::usingGLX())
         return ui::GpuMemoryBufferSupportX11::GetInstance()->CanCreateNativePixmapForFormat(format);
@@ -101,6 +102,7 @@ bool SurfaceFactoryQt::CanCreateNativePixmapForFormat(gfx::BufferFormat format)
     if (OzoneUtilQt::usingEGL())
         return ui::SurfaceFactoryOzone::CanCreateNativePixmapForFormat(format);
 #endif
+#endif // QT_CONFIG(opengl)
 
     return false;
 }

@@ -3,11 +3,11 @@
 
 #include "ozone_util_qt.h"
 
-#include <QGuiApplication>
+#include <QtGui/qguiapplication.h>
+#include <qpa/qplatformnativeinterface.h>
 
 #if QT_CONFIG(opengl)
-#include <QOpenGLContext>
-#include <qpa/qplatformnativeinterface.h>
+#include <QtGui/qopenglcontext.h>
 #endif
 
 QT_BEGIN_NAMESPACE

@@ -85,6 +85,7 @@ if(PkgConfig_FOUND)
     pkg_check_modules(LIBOPENJP2 libopenjp2)
     pkg_check_modules(XKBCOMMON xkbcommon)
     pkg_check_modules(XKBFILE xkbfile)
+    pkg_check_modules(XCBDRI3 xcb-dri3)
 endif()
 
 if(Python3_EXECUTABLE)
@@ -424,14 +425,14 @@ qt_webengine_configure_check("dbus"
 
 # Only check for the 'xcb' feature if the Gui targets exists, aka Qt was not configured with
 # -no-gui.
-set(x_libs X11 LIBDRM XCOMPOSITE XCURSOR XRANDR XI XPROTO XSHMFENCE XTST XKBCOMMON XKBFILE)
+set(x_libs X11 LIBDRM XCOMPOSITE XCURSOR XRANDR XI XPROTO XSHMFENCE XTST XKBCOMMON XKBFILE XCBDRI3)
 set(qpa_xcb_support_check TRUE)
 foreach(x_lib ${x_libs})
     string(TOLOWER ${x_lib} x)
     qt_webengine_configure_check("${x}"
         MODULES QtWebEngine
         CONDITION NOT TARGET Qt6::Gui OR NOT LINUX OR NOT QT_FEATURE_xcb OR ${x_lib}_FOUND
-        MESSAGE "Could not find ${x} librarary for qpa-xcb support."
+        MESSAGE "Could not find ${x} library for qpa-xcb support."
         DOCUMENTATION "${x}"
         TAGS LINUX_XCB
         OPTIONAL

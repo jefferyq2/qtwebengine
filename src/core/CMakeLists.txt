@@ -217,17 +217,18 @@ foreach(arch ${archs})
                 ozone/gl_helper.cpp ozone/gl_helper.h
         )
 
+        extend_gn_target(${buildGn} CONDITION LINUX AND QT_FEATURE_opengl AND QT_FEATURE_webengine_ozone_x11
+            SOURCES
+                ozone/glx_helper.cpp ozone/glx_helper.h
+                ozone/gl_ozone_glx_qt.cpp ozone/gl_ozone_glx_qt.h
+                ozone/gl_surface_glx_qt.cpp ozone/gl_surface_glx_qt.h
+        )
+
         extend_gn_target(${buildGn} CONDITION LINUX AND QT_FEATURE_opengl AND QT_FEATURE_egl
             SOURCES
                 ozone/egl_helper.cpp ozone/egl_helper.h
                 ozone/gl_ozone_egl_qt.cpp ozone/gl_ozone_egl_qt.h
                 ozone/gl_surface_egl_qt.cpp ozone/gl_surface_egl_qt.h
-        )
-
-        extend_gn_target(${buildGn} CONDITION QT_FEATURE_webengine_ozone_x11
-            SOURCES
-                ozone/gl_ozone_glx_qt.cpp ozone/gl_ozone_glx_qt.h
-                ozone/gl_surface_glx_qt.cpp ozone/gl_surface_glx_qt.h
         )
 
         extend_gn_target(${buildGn} CONDITION QT_FEATURE_webengine_vulkan
