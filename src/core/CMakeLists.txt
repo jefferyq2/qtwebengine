@@ -212,6 +212,11 @@ foreach(arch ${archs})
                 ozone/surface_factory_qt.cpp ozone/surface_factory_qt.h
         )
 
+        extend_gn_target(${buildGn} CONDITION LINUX AND QT_FEATURE_opengl
+            SOURCES
+                ozone/gl_helper.cpp ozone/gl_helper.h
+        )
+
         extend_gn_target(${buildGn} CONDITION LINUX AND QT_FEATURE_opengl AND QT_FEATURE_egl
             SOURCES
                 ozone/egl_helper.cpp ozone/egl_helper.h

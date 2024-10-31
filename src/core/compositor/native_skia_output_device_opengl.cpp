@@ -8,7 +8,7 @@
 #include "native_skia_output_device_opengl.h"
 
 #include <QtGui/qopenglcontext.h>
-#include <QtGui/qopenglextrafunctions.h>
+#include <QtGui/qopenglfunctions.h>
 #include <QtQuick/qquickwindow.h>
 #include <QtQuick/qsgtexture.h>
 
@@ -16,17 +16,18 @@
 #include "ui/gl/gl_implementation.h"
 
 #if BUILDFLAG(IS_OZONE)
+#include "ozone/gl_helper.h"
+#include "ozone/ozone_util_qt.h"
+
 #include "ui/gl/gl_bindings.h"
 #undef glBindTexture
 #undef glCreateMemoryObjectsEXT
 #undef glDeleteMemoryObjectsEXT
 #undef glDeleteTextures
+#undef glEGLImageTargetTexture2DOES
 #undef glGenTextures
 #undef glGetError
 #undef glImportMemoryFdEXT
-#undef glTextureStorageMem2DEXT
-
-#include "ozone/ozone_util_qt.h"
 
 #include "base/posix/eintr_wrapper.h"
 #include "third_party/skia/include/gpu/ganesh/gl/GrGLBackendSurface.h"
@@ -546,6 +547,7 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         if (OzoneUtilQt::usingEGL()) {
             EGLHelper *eglHelper = EGLHelper::instance();
             auto *eglFun = eglHelper->functions();
+            auto *glExtFun = GLHelper::instance()->functions();
 
             const int dmaBufFd = HANDLE_EINTR(dup(nativePixmap->GetDmaBufFd(0)));
             if (dmaBufFd < 0) {
@@ -576,13 +578,9 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
                                            (EGLClientBuffer)NULL, attributeList);
             Q_ASSERT(eglImage != EGL_NO_IMAGE_KHR);
 
-            static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC imageTargetTexture =
-                    (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)glContext->getProcAddress(
-                            "glEGLImageTargetTexture2DOES");
-
             glFun->glGenTextures(1, &glTexture);
             glFun->glBindTexture(GL_TEXTURE_2D, glTexture);
-            imageTargetTexture(GL_TEXTURE_2D, eglImage);
+            glExtFun->glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
             glFun->glBindTexture(GL_TEXTURE_2D, 0);
 
             m_frontBuffer->textureCleanupCallback = [glFun, eglFun, glTexture, eglDisplay,
@@ -613,36 +611,22 @@ QSGTexture *NativeSkiaOutputDeviceOpenGL::texture(QQuickWindow *win, uint32_t te
         if (vfp->vkGetMemoryFdKHR(vulkanDevice, &exportInfo, &fd) != VK_SUCCESS)
             qFatal("VULKAN: Unable to extract file descriptor out of external VkImage.");
 
-        static PFNGLCREATEMEMORYOBJECTSEXTPROC glCreateMemoryObjectsEXT =
-                (PFNGLCREATEMEMORYOBJECTSEXTPROC)glContext->getProcAddress(
-                        "glCreateMemoryObjectsEXT");
-        static PFNGLIMPORTMEMORYFDEXTPROC glImportMemoryFdEXT =
-                (PFNGLIMPORTMEMORYFDEXTPROC)glContext->getProcAddress("glImportMemoryFdEXT");
-        static PFNGLTEXTURESTORAGEMEM2DEXTPROC glTextureStorageMem2DEXT =
-                (PFNGLTEXTURESTORAGEMEM2DEXTPROC)glContext->getProcAddress(
-                        "glTextureStorageMem2DEXT");
+        auto *glExtFun = GLHelper::instance()->functions();
 
         GLuint glMemoryObject;
         glFun->glGenTextures(1, &glTexture);
         glFun->glBindTexture(GL_TEXTURE_2D, glTexture);
-        glCreateMemoryObjectsEXT(1, &glMemoryObject);
-        glImportMemoryFdEXT(glMemoryObject, importedImageSize, GL_HANDLE_TYPE_OPAQUE_FD_EXT, fd);
-        glTextureStorageMem2DEXT(glTexture, 1, GL_RGBA8_OES, size().width(), size().height(),
-                                 glMemoryObject, 0);
+        glExtFun->glCreateMemoryObjectsEXT(1, &glMemoryObject);
+        glExtFun->glImportMemoryFdEXT(glMemoryObject, importedImageSize,
+                                      GL_HANDLE_TYPE_OPAQUE_FD_EXT, fd);
+        glExtFun->glTextureStorageMem2DEXT(glTexture, 1, GL_RGBA8_OES, size().width(),
+                                           size().height(), glMemoryObject, 0);
         glFun->glBindTexture(GL_TEXTURE_2D, 0);
 
-        m_frontBuffer->textureCleanupCallback = [glTexture, glMemoryObject]() {
-            QOpenGLContext *glContext = QOpenGLContext::currentContext();
-            if (!glContext)
-                return;
-            auto glFun = glContext->functions();
+        m_frontBuffer->textureCleanupCallback = [glFun, glExtFun, glTexture, glMemoryObject]() {
             Q_ASSERT(glFun->glGetError() == GL_NO_ERROR);
 
-            static PFNGLDELETEMEMORYOBJECTSEXTPROC glDeleteMemoryObjectsEXT =
-                    (PFNGLDELETEMEMORYOBJECTSEXTPROC)glContext->getProcAddress(
-                            "glDeleteMemoryObjectsEXT");
-
-            glDeleteMemoryObjectsEXT(1, &glMemoryObject);
+            glExtFun->glDeleteMemoryObjectsEXT(1, &glMemoryObject);
             glFun->glDeleteTextures(1, &glTexture);
         };
 #else
