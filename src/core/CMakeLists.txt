@@ -311,6 +311,11 @@ foreach(arch ${archs})
                 compositor/native_skia_output_device_direct3d11.cpp compositor/native_skia_output_device_direct3d11.h
         )
 
+        extend_gn_target(${buildGn} CONDITION WIN32 AND QT_FEATURE_opengl
+            SOURCES
+                compositor/wgl_helper.cpp compositor/wgl_helper.h
+        )
+
         ##
         #   GN PARAMETERS SETUP
         ##
