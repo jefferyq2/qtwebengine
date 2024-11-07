@@ -11,6 +11,7 @@ qt_webengine_set_version(ninja 1.7.2)
 qt_webengine_set_version(python3 3.8)
 qt_webengine_set_version(nodejs 14.9)
 qt_webengine_set_version(nss 3.26)
+qt_webengine_set_version(gcc 10.0)
 qt_webengine_set_version(glib 2.32.0)
 qt_webengine_set_version(glibc 2.16)
 qt_webengine_set_version(harfbuzz 4.3.0)
@@ -274,7 +275,7 @@ qt_webengine_configure_check("compiler-cxx20"
 
 qt_webengine_configure_check("cmake"
     MODULES QtWebEngine QtPdf
-    CONDITION CMAKE_VERSION VERSION_GREATER_EQUAL ${QT_CONFIGURE_CHECK_cmake_version}}
+    CONDITION CMAKE_VERSION VERSION_GREATER_EQUAL ${QT_CONFIGURE_CHECK_cmake_version}
     MESSAGE
         "Build requires CMake ${QT_CONFIGURE_CHECK_cmake_version} or higher."
     DOCUMENTATION
@@ -485,6 +486,15 @@ qt_webengine_configure_check("msvc-2022"
     MESSAGE "VS compiler version must be at least 14.36"
     DOCUMENTATION "Visual Studio compiler version at least 14.36 if compiled with Visual Studio 2022"
     TAGS WINDOWS_PLATFORM
+)
+
+qt_webengine_configure_check("gcc"
+    MODULES QtWebEngine QtPdf
+    CONDITION NOT (LINUX OR MINGW) OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+              NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${QT_CONFIGURE_CHECK_gcc_version}
+    MESSAGE "GCC version must be at least ${QT_CONFIGURE_CHECK_gcc_version}"
+    DOCUMENTATION "GCC version must be at least ${QT_CONFIGURE_CHECK_gcc_version}"
+    TAGS LINUX_PLATFORM
 )
 
 if(WIN32)
