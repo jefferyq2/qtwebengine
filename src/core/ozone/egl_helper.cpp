@@ -63,7 +63,7 @@ public:
     ScopedGLContext(QOffscreenSurface *surface, EGLHelper::EGLFunctions *eglFun)
         : m_context(new QOpenGLContext()), m_eglFun(eglFun)
     {
-        if (m_previousEGLContext = m_eglFun->eglGetCurrentContext()) {
+        if ((m_previousEGLContext = m_eglFun->eglGetCurrentContext())) {
             m_previousEGLDrawSurface = m_eglFun->eglGetCurrentSurface(EGL_DRAW);
             m_previousEGLReadSurface = m_eglFun->eglGetCurrentSurface(EGL_READ);
             m_previousEGLDisplay = m_eglFun->eglGetCurrentDisplay();
